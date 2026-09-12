@@ -212,67 +212,6 @@ This was important because the target contains three classes:
 
 **UP / STABLE / DOWN**
 
----
-
-# 🧠 Data Science Workflow
-
-The project follows an end-to-end Data Science workflow:
-
-```text
-Problem Definition
-        ↓
-Data Collection
-        ↓
-Data Cleaning
-        ↓
-Exploratory Data Analysis
-        ↓
-Feature Engineering
-        ↓
-Target Creation
-        ↓
-Chronological Train/Test Split
-        ↓
-Model Training
-        ↓
-Model Comparison
-        ↓
-Model Evaluation
-        ↓
-Model Serialization
-        ↓
-FastAPI Integration
-        ↓
-Streamlit Application
-        ↓
-Testing
-        ↓
-Deployment
-kissan-seva/
-│
-├── backend/
-│   ├── __init__.py
-│   ├── main.py
-│   ├── model_service.py
-│   ├── mandi_service.py
-│   └── irrigation_service.py
-│
-├── frontend/
-│   └── app.py
-│
-├── models/
-│   └── kissan_seva_price_direction_model.joblib
-│
-├── data/
-│
-├── src/
-│   ├── __init__.py
-│   └── weather.py
-│
-├── .gitignore
-├── README.md
-└── requirements.txt
-
 Testing
 The application was tested across its main components:
 FastAPI startup
@@ -307,6 +246,7 @@ Voice-based farmer assistance
 Mobile-first experience
 Advanced market forecasting
 Better farmer-specific recommendations
+
 Problem
    ↓
 Data
@@ -329,7 +269,8 @@ Testing
    ↓
 Deployment
 
-One of the biggest lessons from the project was that:
+One of the biggest lessons from the project was that 
+
 Honest model evaluation is more valuable than artificially high performance.
 A model with limitations can still provide valuable learning when those limitations are understood, measured and communicated clearly.
 The project also reinforced the importance of connecting technical work to a real-world problem rather than building a model simply for the sake of using machine learning.
