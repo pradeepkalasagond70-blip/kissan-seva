@@ -6,6 +6,17 @@ import numpy as np
 from datetime import datetime
 from textwrap import dedent
 
+import sys
+from pathlib import Path as _Path
+
+PROJECT_ROOT = _Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from backend.mandi_service import get_mandi_prices
+from backend.irrigation_service import get_irrigation_recommendation
+from backend.model_service import price_prediction_service
+
 # ============================================================
 # CONFIG
 # ============================================================
@@ -17,7 +28,8 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-API_BASE = "http://127.0.0.1:8000"
+# Backend services run inside the Streamlit deployment.
+API_BASE = None
 
 LINKEDIN_URL = "https://www.linkedin.com/in/pradeep-kalasagond-95579a230"
 
@@ -686,13 +698,29 @@ div.stButton > button:hover {
 
 def api_get(endpoint, params=None, timeout=70):
     try:
-        response = requests.get(
-            f"{API_BASE}{endpoint}",
-            params=params,
-            timeout=timeout,
-        )
-        response.raise_for_status()
-        return response.json()
+        params = params or {}
+
+        if endpoint == "/market-price":
+            return get_mandi_prices(
+                state=params.get("state"),
+                district=params.get("district"),
+                market=params.get("market"),
+                commodity=params.get("commodity"),
+                limit=int(params.get("limit", 100)),
+            )
+
+        if endpoint == "/model-status":
+            return {
+                "status": "loaded",
+                "model": price_prediction_service.model_data["model_name"],
+                "features": len(price_prediction_service.features),
+            }
+
+        return {
+            "status": "error",
+            "message": f"Unsupported backend endpoint: {endpoint}",
+        }
+
     except Exception as exc:
         return {
             "status": "error",
@@ -702,13 +730,24 @@ def api_get(endpoint, params=None, timeout=70):
 
 def api_post(endpoint, payload, timeout=30):
     try:
-        response = requests.post(
-            f"{API_BASE}{endpoint}",
-            json=payload,
-            timeout=timeout,
-        )
-        response.raise_for_status()
-        return response.json()
+        if endpoint == "/irrigation":
+            return get_irrigation_recommendation(
+                payload.get("weather", {})
+            )
+
+        if endpoint == "/predict":
+            result = price_prediction_service.predict(payload)
+            return {
+                "status": "success",
+                "prediction": result["prediction"],
+                "confidence": result["confidence"],
+            }
+
+        return {
+            "status": "error",
+            "message": f"Unsupported backend endpoint: {endpoint}",
+        }
+
     except Exception as exc:
         return {
             "status": "error",

@@ -9,7 +9,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-API_KEY = os.getenv("DATA_GOV_API_KEY")
+def _get_api_key():
+    key = os.getenv("DATA_GOV_API_KEY")
+    if key:
+        return key
+
+    try:
+        import streamlit as st
+        return st.secrets.get("DATA_GOV_API_KEY")
+    except Exception:
+        return None
 
 RESOURCE_ID = "9ef84268-d588-465a-a308-a864a43d0070"
 
@@ -33,14 +42,16 @@ def get_mandi_prices(
     """
 
     # Check API key
-    if not API_KEY:
+    api_key = _get_api_key()
+
+    if not api_key:
         raise ValueError(
             "DATA_GOV_API_KEY is not configured in .env"
         )
 
     # API parameters
     params = {
-        "api-key": API_KEY,
+        "api-key": api_key,
         "format": "json",
         "limit": limit
     }
