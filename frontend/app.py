@@ -1248,19 +1248,10 @@ def api_post(endpoint, payload, timeout=30):
 @st.cache_data(ttl=300, show_spinner=False)
 def load_mandi_records(limit=1000):
     """
-    Load the COMPLETE current mandi dataset returned by data.gov.in.
+    Load current mandi records.
 
-    Important:
-    We intentionally do NOT use filters[state] here. The state-filtered API
-    response was not reliably exposing the full Karnataka district/APMC
-    slice. We fetch the complete current dataset first, then filter locally.
-
-    This makes the selector source:
-        All current records
-            -> Karnataka
-            -> District
-            -> Commodity
-            -> APMC/Market
+    Karnataka is sourced from the SQLite-backed service.
+    Other states continue to use the existing government API.
     """
     try:
         page_size = max(1, min(int(limit), 1000))
@@ -1268,6 +1259,7 @@ def load_mandi_records(limit=1000):
         offset = 0
         total = None
 
+        # Existing government API flow for non-Karnataka data.
         while True:
             page = _government_mandi_page(
                 limit=page_size,
@@ -1275,7 +1267,7 @@ def load_mandi_records(limit=1000):
             )
 
             if not isinstance(page, dict):
-                return pd.DataFrame(), "Invalid response from mandi API."
+                break
 
             records = page.get("records", [])
             page_total = int(page.get("total", 0) or 0)
@@ -1291,20 +1283,31 @@ def load_mandi_records(limit=1000):
             all_records.extend(records)
             offset += len(records)
 
-            # Continue until the API's complete current total is collected.
             if total and offset >= total:
                 break
 
-            # If the API gives a short final page, there is nothing more to fetch.
             if len(records) < page_size:
                 break
+
+        # Karnataka comes from our local SQLite database.
+        karnataka_result = get_mandi_prices(
+            state="Karnataka",
+            limit=1000,
+            offset=0,
+        )
+
+        if (
+            isinstance(karnataka_result, dict)
+            and karnataka_result.get("status") == "success"
+        ):
+            all_records.extend(karnataka_result.get("records", []))
 
         if not all_records:
             return pd.DataFrame(), "No current mandi records returned."
 
         df = pd.DataFrame(all_records)
 
-        for column in [
+        required_columns = [
             "state",
             "district",
             "market",
@@ -1312,7 +1315,9 @@ def load_mandi_records(limit=1000):
             "variety",
             "grade",
             "arrival_date",
-        ]:
+        ]
+
+        for column in required_columns:
             if column not in df.columns:
                 df[column] = ""
 
@@ -1325,15 +1330,7 @@ def load_mandi_records(limit=1000):
                 errors="coerce",
             )
 
-        for column in [
-            "state",
-            "district",
-            "market",
-            "commodity",
-            "variety",
-            "grade",
-            "arrival_date",
-        ]:
+        for column in required_columns:
             df[column] = (
                 df[column]
                 .fillna("")
@@ -1341,7 +1338,6 @@ def load_mandi_records(limit=1000):
                 .str.strip()
             )
 
-        # Protect against duplicate rows if the source changes while paging.
         df = df.drop_duplicates().reset_index(drop=True)
 
         return df, None
@@ -1353,37 +1349,62 @@ def load_mandi_records(limit=1000):
 @st.cache_data(ttl=300, show_spinner=False)
 def load_state_mandi_records(state):
     """
-    Filter the already-complete current mandi dataset locally.
+    Load records for the selected state.
 
-    This is deliberate: once the full government dataset is loaded, Karnataka
-    is never dependent on the API's server-side state-filter behavior.
+    Karnataka -> SQLite-backed service.
+    Other states -> existing government API dataset.
     """
     try:
-        all_df, error = load_mandi_records(1000)
-
-        if error:
-            return pd.DataFrame(), error
-
-        if all_df.empty:
-            return pd.DataFrame(), "No current mandi records returned."
-
         wanted_state = str(state).strip().casefold()
 
-        state_df = all_df[
-            all_df["state"].astype(str).str.strip().str.casefold()
-            == wanted_state
-        ].copy()
+        if wanted_state == "karnataka":
+            result = get_mandi_prices(
+                state="Karnataka",
+                limit=1000,
+                offset=0,
+            )
 
-        # Karnataka has several historical/current district spellings
-        # (e.g. Bijapur/Vijayapura, Bellary/Ballari, Gulbarga/Kalaburagi).
-        # Canonicalize them before dependent dropdowns are built so the
-        # district's real commodity and market records are not lost.
-        if wanted_state == "karnataka" and not state_df.empty:
-            state_df["district"] = state_df["district"].map(canonical_district)
+            if not isinstance(result, dict):
+                return pd.DataFrame(), "Invalid Karnataka mandi response."
+
+            if result.get("status") != "success":
+                return pd.DataFrame(), result.get(
+                    "message",
+                    "Unable to load Karnataka mandi data.",
+                )
+
+            records = result.get("records", [])
+
+            if not records:
+                return pd.DataFrame(), (
+                    "No Karnataka mandi records are currently stored."
+                )
+
+            state_df = pd.DataFrame(records)
+
+        else:
+            # Preserve existing behavior for other states.
+            all_df, error = load_mandi_records(1000)
+
+            if error:
+                return pd.DataFrame(), error
+
+            if all_df.empty:
+                return pd.DataFrame(), "No current mandi records returned."
+
+            state_df = all_df[
+                all_df["state"].astype(str).str.strip().str.casefold()
+                == wanted_state
+            ].copy()
 
         if state_df.empty:
             return pd.DataFrame(), (
                 f"No current mandi records returned for {state}."
+            )
+
+        if wanted_state == "karnataka" and "district" in state_df.columns:
+            state_df["district"] = state_df["district"].map(
+                canonical_district
             )
 
         return state_df.reset_index(drop=True), None
@@ -1440,70 +1461,73 @@ def build_state_selection_df(state, current_df):
 
 
 @st.cache_data(ttl=300, show_spinner=False)
-def load_karnataka_recent_price_history(district, market, commodity, days=7):
-    """Find the newest Karnataka price observation available within N days.
-
-    The current data.gov.in resource is queried by arrival_date when possible.
-    If the portal ignores the date filter, returned rows are still validated
-    against their actual arrival_date before being accepted.
+def load_karnataka_recent_price_history(
+    district,
+    market,
+    commodity,
+    days=7,
+):
     """
-    api_key = _mandi_service._get_api_key()
-    if not api_key:
-        return pd.DataFrame()
+    Find the newest Karnataka price observation available in SQLite.
 
-    rows = []
-    today = pd.Timestamp.today().normalize()
+    The actual arrival_date is retained, so older prices are never labelled
+    as today's price.
+    """
+    try:
+        result = get_mandi_prices(
+            state="Karnataka",
+            district=district,
+            market=market,
+            commodity=commodity,
+            limit=1000,
+            offset=0,
+        )
 
-    for offset in range(max(1, int(days))):
-        target = today - pd.Timedelta(days=offset)
-        target_formats = [target.strftime("%d/%m/%Y"), target.strftime("%Y-%m-%d")]
+        if not isinstance(result, dict):
+            return pd.DataFrame()
 
-        for date_value in target_formats:
-            params = {
-                "api-key": api_key,
-                "format": "json",
-                "limit": 1000,
-                "offset": 0,
-                "filters[state.keyword]": "Karnataka",
-                "filters[district]": district,
-                "filters[market]": market,
-                "filters[commodity]": commodity,
-                "filters[arrival_date]": date_value,
-            }
-            try:
-                response = requests.get(
-                    _mandi_service.API_URL,
-                    params=params,
-                    headers={"User-Agent": "Kissan-Seva/1.0"},
-                    timeout=(8, 30),
+        if result.get("status") != "success":
+            return pd.DataFrame()
+
+        records = result.get("records", [])
+
+        if not records:
+            return pd.DataFrame()
+
+        df = pd.DataFrame(records)
+
+        if "arrival_date" not in df.columns:
+            return pd.DataFrame()
+
+        df["arrival_date"] = pd.to_datetime(
+            df["arrival_date"],
+            errors="coerce",
+            dayfirst=True,
+        )
+
+        today = pd.Timestamp.today().normalize()
+        cutoff = today - pd.Timedelta(days=max(0, int(days) - 1))
+
+        df = df[
+            df["arrival_date"].notna()
+            & (df["arrival_date"] >= cutoff)
+            & (df["arrival_date"] <= today)
+        ].copy()
+
+        for column in ["min_price", "max_price", "modal_price"]:
+            if column in df.columns:
+                df[column] = pd.to_numeric(
+                    df[column],
+                    errors="coerce",
                 )
-                response.raise_for_status()
-                payload = response.json()
-                candidate = payload.get("records", [])
-                if candidate:
-                    rows.extend(candidate)
-                    break
-            except Exception:
-                continue
 
-    if not rows:
+        return df.sort_values(
+            "arrival_date",
+            ascending=False,
+        ).reset_index(drop=True)
+
+    except Exception:
         return pd.DataFrame()
-
-    df = pd.DataFrame(rows).drop_duplicates().copy()
-    if "arrival_date" not in df.columns:
-        return pd.DataFrame()
-
-    df["arrival_date"] = pd.to_datetime(
-        df["arrival_date"], errors="coerce", dayfirst=True
-    )
-    cutoff = today - pd.Timedelta(days=max(0, int(days) - 1))
-    df = df[df["arrival_date"].notna() & (df["arrival_date"] >= cutoff) & (df["arrival_date"] <= today)].copy()
-
-    for col in ["min_price", "max_price", "modal_price"]:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-
-    return df.sort_values("arrival_date", ascending=False).reset_index(drop=True)
 
 
 # ============================================================
