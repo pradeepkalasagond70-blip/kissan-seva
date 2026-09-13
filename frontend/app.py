@@ -1859,17 +1859,29 @@ is_karnataka = str(selected_state).strip().casefold() == "karnataka"
 # ============================================================
 
 # IMPORTANT:
-# Districts, commodities and markets are derived ONLY from the
-# current government price records.
+# Karnataka uses the complete local APMC master for the DISTRICT
+# selector. This prevents the district dropdown from being limited
+# to only the districts that happen to have a current price record.
 #
-# No local/master geography is used to manufacture dropdown options.
-# Therefore:
+# Karnataka:
+#     APMC Master
+#          ↓
+#       District
+#          ↓
+#     Government Feed
+#          ↓
+#     Commodity
+#          ↓
+#     Government Feed
+#          ↓
+#       Market
+#          ↓
+#        Price
 #
-#     Government data
+# Other states:
+#     Government Feed
 #          ↓
-#       State
-#          ↓
-#      District
+#       District
 #          ↓
 #     Commodity
 #          ↓
@@ -1877,10 +1889,26 @@ is_karnataka = str(selected_state).strip().casefold() == "karnataka"
 #          ↓
 #        Price
 #
-# If the government adds a new district/commodity/market record,
-# it will automatically appear after the cached data refreshes.
+# IMPORTANT:
+# The master is NOT used to manufacture commodity or price data.
+# Commodities and markets remain restricted to actual government
+# records for the selected district/commodity.
 
-state_df = state_current_df.copy()
+# Keep the actual current government feed separate.
+# This dataframe is used for the reporting KPI.
+current_feed_df = state_current_df.copy()
+
+# For Karnataka, merge the complete APMC geography master with
+# the current government records.
+# For all other states, this returns the current dataframe unchanged.
+state_df = build_state_selection_df(
+    selected_state,
+    current_feed_df,
+)
+
+# ------------------------------------------------------------
+# DISTRICTS
+# ------------------------------------------------------------
 
 districts = sorted([
     str(x).strip()
@@ -1892,8 +1920,15 @@ districts = sorted([
     and str(x).casefold() != "nan"
 ])
 
+# ------------------------------------------------------------
+# CURRENT GOVERNMENT-FEED COVERAGE
+# ------------------------------------------------------------
+
+# Keep "Districts reporting" based ONLY on actual current
+# government records. Master-only districts must not be counted
+# as currently reporting.
 coverage = get_mandi_coverage_summary(
-    state_df,
+    current_feed_df,
     selected_state
 )
 
@@ -1933,8 +1968,14 @@ html(
 )
 
 if not districts:
-    st.warning(f"No district information is available for {selected_state}.")
+    st.warning(
+        f"No district information is available for {selected_state}."
+    )
     st.stop()
+
+# ------------------------------------------------------------
+# DISTRICT SELECTOR
+# ------------------------------------------------------------
 
 with district_col:
     selected_district = st.selectbox(
@@ -1943,56 +1984,102 @@ with district_col:
         key=f"kissan_district_{selected_state}",
     )
 
+# ------------------------------------------------------------
+# SELECTED DISTRICT DATA
+# ------------------------------------------------------------
+
 district_df = state_df[
-    state_df.get("district", pd.Series(dtype=str)).astype(str).str.casefold()
+    state_df.get(
+        "district",
+        pd.Series(dtype=str)
+    ).astype(str).str.casefold()
     == selected_district.casefold()
 ].copy()
 
-# IMPORTANT FOR KARNATAKA:
-# Do not use the geography master to create commodities.
-# The master is only for keeping all districts visible.
-# Commodity options must come ONLY from actual government records for the
-# selected district. This prevents a commodity from another Karnataka
-# district (for example Snakeguard) appearing in Vijayapura.
+# ------------------------------------------------------------
+# COMMODITIES
+# ------------------------------------------------------------
+
+# For Karnataka, master rows are allowed to keep districts visible,
+# but they do NOT create commodity options.
+#
+# Therefore a commodity appears only when the selected district has
+# an actual government record for that commodity.
 commodities = sorted({
-    x for x in district_df.get("commodity", pd.Series(dtype=str)).dropna().astype(str).unique()
-    if x.strip() and x.casefold() != "nan"
+    x.strip()
+    for x in district_df.get(
+        "commodity",
+        pd.Series(dtype=str)
+    ).dropna().astype(str).unique()
+    if x.strip()
+    and x.casefold() != "nan"
 })
 
 if not commodities:
-    st.warning(f"No commodity list is available for {selected_district}.")
+    st.warning(
+        f"No current commodity data is available for {selected_district}."
+    )
+    if is_karnataka:
+        st.info(
+            "This district exists in the Karnataka APMC master, "
+            "but the current government mandi feed has no commodity "
+            "records for it yet."
+        )
     st.stop()
 
 with commodity_col:
     selected_commodity = st.selectbox(
         "Commodity",
         commodities,
-        key=f"kissan_commodity_{selected_state}_{selected_district}",
+        key=(
+            f"kissan_commodity_"
+            f"{selected_state}_"
+            f"{selected_district}"
+        ),
     )
 
+# ------------------------------------------------------------
+# SELECTED COMMODITY DATA
+# ------------------------------------------------------------
+
 commodity_df = district_df[
-    district_df.get("commodity", pd.Series(dtype=str)).astype(str).str.casefold()
+    district_df.get(
+        "commodity",
+        pd.Series(dtype=str)
+    ).astype(str).str.casefold()
     == selected_commodity.casefold()
 ].copy()
 
-# Match markets by normalized names so "Vijayapura", "Vijayapura APMC",
-# etc. resolve to the same market when the government feed uses a variant.
-if not commodity_df.empty and "market" in commodity_df.columns:
-    commodity_df["market_key"] = commodity_df["market"].map(normalize_market)
+# ------------------------------------------------------------
+# MARKETS
+# ------------------------------------------------------------
 
-markets = set(
-    x for x in commodity_df.get("market", pd.Series(dtype=str)).dropna().astype(str).unique()
-    if x.strip() and x.casefold() != "nan"
-)
+# Match market names by normalized form where necessary.
+if (
+    not commodity_df.empty
+    and "market" in commodity_df.columns
+):
+    commodity_df["market_key"] = (
+        commodity_df["market"].map(normalize_market)
+    )
 
-# IMPORTANT FOR KARNATAKA:
-# Markets must also come ONLY from the actual government records for the
-# selected district + commodity. Do not add master markets here, otherwise
-# the UI can show an APMC for which the selected commodity has no price.
-markets = sorted(markets)
+# Markets come ONLY from actual government records for the
+# selected district + commodity.
+markets = sorted({
+    x.strip()
+    for x in commodity_df.get(
+        "market",
+        pd.Series(dtype=str)
+    ).dropna().astype(str).unique()
+    if x.strip()
+    and x.casefold() != "nan"
+})
 
 if not markets:
-    st.warning("No APMC / market is available for this district yet.")
+    st.warning(
+        "No APMC / market is available for this "
+        "district and commodity yet."
+    )
     st.stop()
 
 with market_col:
@@ -2000,7 +2087,10 @@ with market_col:
         "Market",
         markets,
         key=(
-            f"kissan_market_{selected_state}_{selected_district}_{selected_commodity}"
+            f"kissan_market_"
+            f"{selected_state}_"
+            f"{selected_district}_"
+            f"{selected_commodity}"
         ),
     )
 
