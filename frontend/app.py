@@ -588,38 +588,429 @@ div.stButton > button:hover {
 
 @media (max-width: 900px) {
 
+    /* ================= MOBILE GLOBAL ================= */
+
+    .block-container {
+        max-width: 100%;
+        padding-left: 14px;
+        padding-right: 14px;
+        padding-top: 0.25rem;
+        padding-bottom: 1.25rem;
+    }
+
+    .stApp {
+        overflow-x: hidden;
+    }
+
+    /* ================= MOBILE NAVBAR ================= */
+
     .navbar {
+        width: 100%;
+        box-sizing: border-box;
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
+        justify-content: flex-start;
+        padding: 13px 14px 15px;
+        gap: 11px;
+        margin-bottom: 14px;
+        border-radius: 0 0 18px 18px;
+    }
+
+    .brand {
+        width: 100%;
+        min-width: 0;
+        gap: 9px;
+    }
+
+    .brand-icon {
+        width: 42px;
+        height: 42px;
+        flex: 0 0 42px;
+        font-size: 22px;
+    }
+
+    .brand-name {
+        font-size: 21px;
+        line-height: 1.05;
+    }
+
+    .brand-tagline {
+        font-size: 10px;
+        line-height: 1.3;
+        margin-top: 4px;
+        white-space: normal;
     }
 
     .nav-wrap {
-        justify-content: flex-start;
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        justify-content: stretch;
     }
 
     .nav-pill {
-        margin: 2px;
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 10px 5px;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 12px;
+        line-height: 1.2;
+        white-space: nowrap;
     }
 
+    /* ================= MOBILE HERO ================= */
+
+    /*
+       The desktop hero uses a fixed height and absolute quote.
+       On mobile the hero becomes normal document flow.
+       This keeps every text element visible and prevents overlap.
+    */
+
     .hero {
-        height: 230px;
-        padding: 28px 25px;
+        height: auto;
+        min-height: 0;
+        box-sizing: border-box;
+        padding: 25px 20px 22px;
+        border-radius: 18px;
+        margin-bottom: 16px;
+        background-position: center center;
+    }
+
+    .hero-badge {
+        max-width: 100%;
+        box-sizing: border-box;
+        padding: 7px 11px;
+        font-size: 9px;
+        line-height: 1.25;
+        letter-spacing: 0.45px;
+        white-space: normal;
     }
 
     .hero-title {
         font-size: 34px;
+        line-height: 1.05;
+        margin-top: 17px;
+        margin-bottom: 6px;
     }
 
     .hero-subtitle {
-        font-size: 18px;
+        font-size: 17px;
+        line-height: 1.25;
+        margin-bottom: 8px;
+    }
+
+    .hero-description {
+        max-width: 100%;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    /*
+       KEEP the creator credit.
+       The complete quote + credit block moves into normal flow
+       on mobile instead of sitting absolutely over the description.
+    */
+
+    .hero-quote {
+        position: static;
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 17px;
+        padding-top: 13px;
+        border-top: 1px solid rgba(255,255,255,0.30);
+        text-align: left;
+        font-size: 13px;
+        line-height: 1.45;
+    }
+
+    .hero-quote > div {
+        margin-top: 10px !important;
+        font-size: 12px !important;
+        line-height: 1.45 !important;
+        font-style: normal !important;
+        white-space: normal;
+    }
+
+    .hero-quote a {
+        display: inline-block;
+        margin-top: 2px;
+    }
+
+    /* ================= FEATURE CARDS ================= */
+
+    .feature-card {
+        min-height: 106px;
+        box-sizing: border-box;
+        padding: 14px 10px 12px;
+        border-radius: 14px;
+    }
+
+    .feature-icon-clean {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 6px;
+        font-size: 21px;
+    }
+
+    .feature-title {
+        font-size: 12px;
+        line-height: 1.3;
+    }
+
+    .feature-sub {
+        font-size: 10px;
+        line-height: 1.35;
+        margin-top: 2px;
+    }
+
+    .feature-open {
+        opacity: 1;
+        font-size: 10px;
+        margin-top: 6px;
+    }
+
+    /* ================= SECTION HEADINGS ================= */
+
+    .section-title {
+        font-size: 20px;
+        line-height: 1.25;
+        margin-top: 12px;
+    }
+
+    .section-description {
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    /* ================= MARKET KPI ================= */
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin: 9px 0 14px;
+    }
+
+    .kpi-card {
+        min-height: 76px;
+        padding: 9px;
+        gap: 8px;
+    }
+
+    .kpi-icon {
+        width: 31px;
+        height: 31px;
+        flex: 0 0 31px;
+        font-size: 14px;
+    }
+
+    .kpi-value {
+        font-size: 19px;
+    }
+
+    .kpi-label {
+        font-size: 10px;
+    }
+
+    /* ================= GENERAL CARDS ================= */
+
+    .card,
+    .price-card,
+    .ai-card {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 15px;
+        border-radius: 14px;
+    }
+
+    .card-title {
+        font-size: 16px;
+        line-height: 1.3;
+    }
+
+    .price-main {
+        font-size: 31px;
+        line-height: 1.1;
+        word-break: normal;
+    }
+
+    .price-unit {
+        font-size: 12px;
+    }
+
+    .ai-direction {
+        font-size: 21px;
+        line-height: 1.2;
+    }
+
+    .confidence {
+        float: none;
+        display: inline-block;
+        margin-top: 4px;
+        margin-bottom: 4px;
+    }
+
+    /* ================= WEATHER / IRRIGATION ================= */
+
+    .weather-advisory {
+        margin-top: 14px;
+        padding: 14px;
+        border-left-width: 5px;
+    }
+
+    .weather-advisory-title {
+        font-size: 14px;
+        line-height: 1.3;
+    }
+
+    .weather-advisory-reason {
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    /* ================= 7-DAY FORECAST ================= */
+
+    .forecast-box {
+        min-height: 112px;
+        padding: 8px 3px;
+    }
+
+    .forecast-day {
+        font-size: 10px;
+    }
+
+    .forecast-temp {
+        font-size: 16px;
+    }
+
+    .forecast-rain {
+        font-size: 8px;
+        line-height: 1.3;
+    }
+
+    /* ================= RESOURCE / ALERT CARDS ================= */
+
+    .info-link-card .card {
+        min-height: 165px;
+        height: auto;
+        padding: 16px 14px;
+    }
+
+    .info-link-card .card-title {
+        font-size: 16px;
+    }
+
+    .info-link-card .card p {
+        font-size: 11px;
+        line-height: 1.45;
+    }
+
+    /* ================= SYSTEM HEALTH ================= */
+
+    .system-health-kpi {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 17px;
+    }
+
+    .system-health-kpi-title {
+        font-size: 19px;
+    }
+
+    .system-health-kpi-message {
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    .system-health-kpi-checks {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 7px;
+    }
+
+    .system-health-kpi-checks span {
+        font-size: 11px;
+        padding: 7px 10px;
+    }
+
+    /* ================= FOOTER ================= */
+
+    .footer {
+        margin-top: 22px;
+        padding: 20px 14px;
+    }
+
+    .footer-brand {
+        font-size: 19px;
+    }
+
+    .footer-text {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 520px) {
+
+    .block-container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .navbar {
+        padding-left: 11px;
+        padding-right: 11px;
+    }
+
+    .hero {
+        padding: 22px 17px 20px;
+    }
+
+    .hero-title {
+        font-size: 31px;
+    }
+
+    .hero-subtitle {
+        font-size: 16px;
+    }
+
+    .hero-description {
+        font-size: 12.5px;
     }
 
     .hero-quote {
-        display: block;
-        right: 24px;
-        top: auto;
-        bottom: 18px;
-        font-size: 13px;
+        font-size: 12.5px;
+    }
+
+    .hero-quote > div {
+        font-size: 11.5px !important;
+    }
+
+    .kpi-grid {
+        gap: 7px;
+    }
+
+    .kpi-card {
+        padding: 8px;
+    }
+
+    .kpi-value {
+        font-size: 17px;
+    }
+
+    .kpi-label {
+        font-size: 9px;
+    }
+
+    .price-main {
+        font-size: 28px;
+    }
+
+    .feature-card {
+        min-height: 102px;
     }
 }
 
