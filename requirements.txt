@@ -7,4 +7,4 @@ joblib
 requests
 python-dotenv
 streamlit
-beautifulsoup4
+beautifulsoup4 
