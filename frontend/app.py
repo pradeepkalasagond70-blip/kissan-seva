@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import time
 from textwrap import dedent
 
 import sys
@@ -16,13 +17,7 @@ from backend.mandi_service import get_mandi_prices
 import backend.mandi_service as _mandi_service
 from backend.irrigation_service import get_irrigation_recommendation
 from backend.model_service import price_prediction_service
-from backend.karnataka_apmc_service import (
-    load_karnataka_apmc_master,
-    merge_karnataka_current_prices,
-    KARNATAKA_MARKETS,
-    canonical_district,
-    normalize_market,
-)
+from backend.karnataka_apmc_service import canonical_district, normalize_market
 
 # ============================================================
 # CONFIG
@@ -47,6 +42,40 @@ HERO_IMAGE = (
     "https://images.unsplash.com/photo-1500382017468-9049fed747ef"
     "?auto=format&fit=crop&w=1800&q=85"
 )
+
+
+# Government mandi selector states.
+# The app no longer calls the full India mandi dataset just to build this list.
+SUPPORTED_STATES = [
+    "Andhra Pradesh",
+    "Arunachal Pradesh",
+    "Assam",
+    "Bihar",
+    "Chhattisgarh",
+    "Goa",
+    "Gujarat",
+    "Haryana",
+    "Himachal Pradesh",
+    "Jharkhand",
+    "Karnataka",
+    "Kerala",
+    "Madhya Pradesh",
+    "Maharashtra",
+    "Manipur",
+    "Meghalaya",
+    "Mizoram",
+    "Nagaland",
+    "Odisha",
+    "Punjab",
+    "Rajasthan",
+    "Sikkim",
+    "Tamil Nadu",
+    "Telangana",
+    "Tripura",
+    "Uttar Pradesh",
+    "Uttarakhand",
+    "West Bengal",
+]
 
 
 # ============================================================
@@ -588,429 +617,38 @@ div.stButton > button:hover {
 
 @media (max-width: 900px) {
 
-    /* ================= MOBILE GLOBAL ================= */
-
-    .block-container {
-        max-width: 100%;
-        padding-left: 14px;
-        padding-right: 14px;
-        padding-top: 0.25rem;
-        padding-bottom: 1.25rem;
-    }
-
-    .stApp {
-        overflow-x: hidden;
-    }
-
-    /* ================= MOBILE NAVBAR ================= */
-
     .navbar {
-        width: 100%;
-        box-sizing: border-box;
         flex-direction: column;
-        align-items: stretch;
-        justify-content: flex-start;
-        padding: 13px 14px 15px;
-        gap: 11px;
-        margin-bottom: 14px;
-        border-radius: 0 0 18px 18px;
-    }
-
-    .brand {
-        width: 100%;
-        min-width: 0;
-        gap: 9px;
-    }
-
-    .brand-icon {
-        width: 42px;
-        height: 42px;
-        flex: 0 0 42px;
-        font-size: 22px;
-    }
-
-    .brand-name {
-        font-size: 21px;
-        line-height: 1.05;
-    }
-
-    .brand-tagline {
-        font-size: 10px;
-        line-height: 1.3;
-        margin-top: 4px;
-        white-space: normal;
+        align-items: flex-start;
     }
 
     .nav-wrap {
-        width: 100%;
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 6px;
-        justify-content: stretch;
+        justify-content: flex-start;
     }
 
     .nav-pill {
-        display: block;
-        width: 100%;
-        box-sizing: border-box;
-        margin: 0;
-        padding: 10px 5px;
-        border-radius: 10px;
-        text-align: center;
-        font-size: 12px;
-        line-height: 1.2;
-        white-space: nowrap;
+        margin: 2px;
     }
-
-    /* ================= MOBILE HERO ================= */
-
-    /*
-       The desktop hero uses a fixed height and absolute quote.
-       On mobile the hero becomes normal document flow.
-       This keeps every text element visible and prevents overlap.
-    */
 
     .hero {
         height: auto;
-        min-height: 0;
-        box-sizing: border-box;
-        padding: 25px 20px 22px;
-        border-radius: 18px;
-        margin-bottom: 16px;
-        background-position: center center;
-    }
-
-    .hero-badge {
-        max-width: 100%;
-        box-sizing: border-box;
-        padding: 7px 11px;
-        font-size: 9px;
-        line-height: 1.25;
-        letter-spacing: 0.45px;
-        white-space: normal;
+        min-height: 230px;
+        padding: 28px 25px;
     }
 
     .hero-title {
         font-size: 34px;
-        line-height: 1.05;
-        margin-top: 17px;
-        margin-bottom: 6px;
     }
 
     .hero-subtitle {
-        font-size: 17px;
-        line-height: 1.25;
-        margin-bottom: 8px;
+        font-size: 18px;
     }
-
-    .hero-description {
-        max-width: 100%;
-        font-size: 13px;
-        line-height: 1.5;
-    }
-
-    /*
-       KEEP the creator credit.
-       The complete quote + credit block moves into normal flow
-       on mobile instead of sitting absolutely over the description.
-    */
 
     .hero-quote {
         position: static;
-        width: 100%;
-        box-sizing: border-box;
-        margin-top: 17px;
-        padding-top: 13px;
-        border-top: 1px solid rgba(255,255,255,0.30);
+        margin-top: 20px;
         text-align: left;
         font-size: 13px;
-        line-height: 1.45;
-    }
-
-    .hero-quote > div {
-        margin-top: 10px !important;
-        font-size: 12px !important;
-        line-height: 1.45 !important;
-        font-style: normal !important;
-        white-space: normal;
-    }
-
-    .hero-quote a {
-        display: inline-block;
-        margin-top: 2px;
-    }
-
-    /* ================= FEATURE CARDS ================= */
-
-    .feature-card {
-        min-height: 106px;
-        box-sizing: border-box;
-        padding: 14px 10px 12px;
-        border-radius: 14px;
-    }
-
-    .feature-icon-clean {
-        width: 40px;
-        height: 40px;
-        margin-bottom: 6px;
-        font-size: 21px;
-    }
-
-    .feature-title {
-        font-size: 12px;
-        line-height: 1.3;
-    }
-
-    .feature-sub {
-        font-size: 10px;
-        line-height: 1.35;
-        margin-top: 2px;
-    }
-
-    .feature-open {
-        opacity: 1;
-        font-size: 10px;
-        margin-top: 6px;
-    }
-
-    /* ================= SECTION HEADINGS ================= */
-
-    .section-title {
-        font-size: 20px;
-        line-height: 1.25;
-        margin-top: 12px;
-    }
-
-    .section-description {
-        font-size: 12px;
-        line-height: 1.45;
-    }
-
-    /* ================= MARKET KPI ================= */
-
-    .kpi-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-        margin: 9px 0 14px;
-    }
-
-    .kpi-card {
-        min-height: 76px;
-        padding: 9px;
-        gap: 8px;
-    }
-
-    .kpi-icon {
-        width: 31px;
-        height: 31px;
-        flex: 0 0 31px;
-        font-size: 14px;
-    }
-
-    .kpi-value {
-        font-size: 19px;
-    }
-
-    .kpi-label {
-        font-size: 10px;
-    }
-
-    /* ================= GENERAL CARDS ================= */
-
-    .card,
-    .price-card,
-    .ai-card {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 15px;
-        border-radius: 14px;
-    }
-
-    .card-title {
-        font-size: 16px;
-        line-height: 1.3;
-    }
-
-    .price-main {
-        font-size: 31px;
-        line-height: 1.1;
-        word-break: normal;
-    }
-
-    .price-unit {
-        font-size: 12px;
-    }
-
-    .ai-direction {
-        font-size: 21px;
-        line-height: 1.2;
-    }
-
-    .confidence {
-        float: none;
-        display: inline-block;
-        margin-top: 4px;
-        margin-bottom: 4px;
-    }
-
-    /* ================= WEATHER / IRRIGATION ================= */
-
-    .weather-advisory {
-        margin-top: 14px;
-        padding: 14px;
-        border-left-width: 5px;
-    }
-
-    .weather-advisory-title {
-        font-size: 14px;
-        line-height: 1.3;
-    }
-
-    .weather-advisory-reason {
-        font-size: 12px;
-        line-height: 1.5;
-    }
-
-    /* ================= 7-DAY FORECAST ================= */
-
-    .forecast-box {
-        min-height: 112px;
-        padding: 8px 3px;
-    }
-
-    .forecast-day {
-        font-size: 10px;
-    }
-
-    .forecast-temp {
-        font-size: 16px;
-    }
-
-    .forecast-rain {
-        font-size: 8px;
-        line-height: 1.3;
-    }
-
-    /* ================= RESOURCE / ALERT CARDS ================= */
-
-    .info-link-card .card {
-        min-height: 165px;
-        height: auto;
-        padding: 16px 14px;
-    }
-
-    .info-link-card .card-title {
-        font-size: 16px;
-    }
-
-    .info-link-card .card p {
-        font-size: 11px;
-        line-height: 1.45;
-    }
-
-    /* ================= SYSTEM HEALTH ================= */
-
-    .system-health-kpi {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 14px;
-        padding: 17px;
-    }
-
-    .system-health-kpi-title {
-        font-size: 19px;
-    }
-
-    .system-health-kpi-message {
-        font-size: 12px;
-        line-height: 1.45;
-    }
-
-    .system-health-kpi-checks {
-        width: 100%;
-        justify-content: flex-start;
-        gap: 7px;
-    }
-
-    .system-health-kpi-checks span {
-        font-size: 11px;
-        padding: 7px 10px;
-    }
-
-    /* ================= FOOTER ================= */
-
-    .footer {
-        margin-top: 22px;
-        padding: 20px 14px;
-    }
-
-    .footer-brand {
-        font-size: 19px;
-    }
-
-    .footer-text {
-        font-size: 10px;
-    }
-}
-
-@media (max-width: 520px) {
-
-    .block-container {
-        padding-left: 10px;
-        padding-right: 10px;
-    }
-
-    .navbar {
-        padding-left: 11px;
-        padding-right: 11px;
-    }
-
-    .hero {
-        padding: 22px 17px 20px;
-    }
-
-    .hero-title {
-        font-size: 31px;
-    }
-
-    .hero-subtitle {
-        font-size: 16px;
-    }
-
-    .hero-description {
-        font-size: 12.5px;
-    }
-
-    .hero-quote {
-        font-size: 12.5px;
-    }
-
-    .hero-quote > div {
-        font-size: 11.5px !important;
-    }
-
-    .kpi-grid {
-        gap: 7px;
-    }
-
-    .kpi-card {
-        padding: 8px;
-    }
-
-    .kpi-value {
-        font-size: 17px;
-    }
-
-    .kpi-label {
-        font-size: 9px;
-    }
-
-    .price-main {
-        font-size: 28px;
-    }
-
-    .feature-card {
-        min-height: 102px;
     }
 }
 
@@ -1247,446 +885,187 @@ def api_post(endpoint, payload, timeout=30):
 
 @st.cache_data(ttl=300, show_spinner=False)
 def load_mandi_records(limit=1000):
+    """Compatibility wrapper.
+
+    The dashboard intentionally does not download the complete India mandi
+    dataset at startup. A state is selected first, then only that state's
+    current records are requested.
     """
-    Load current mandi records.
+    return pd.DataFrame(), "Select a state to load current mandi data."
 
-    Karnataka is sourced from the SQLite-backed service.
-    Other states continue to use the existing government API.
-    """
-    try:
-        page_size = max(1, min(int(limit), 1000))
-        all_records = []
-        offset = 0
-        total = None
 
-        # Existing government API flow for non-Karnataka data.
-        while True:
-            page = _government_mandi_page(
-                limit=page_size,
-                offset=offset,
-            )
+def _clean_mandi_dataframe(df):
+    """Normalize government mandi records into the columns used by the UI."""
+    df = df.copy()
 
-            if not isinstance(page, dict):
-                break
+    required_text_columns = [
+        "state",
+        "district",
+        "market",
+        "commodity",
+        "variety",
+        "grade",
+        "arrival_date",
+    ]
 
-            records = page.get("records", [])
-            page_total = int(page.get("total", 0) or 0)
+    for column in required_text_columns:
+        if column not in df.columns:
+            df[column] = ""
 
-            if total is None:
-                total = page_total
-            elif page_total > total:
-                total = page_total
+    for column in ["min_price", "max_price", "modal_price"]:
+        if column not in df.columns:
+            df[column] = np.nan
+        df[column] = pd.to_numeric(df[column], errors="coerce")
 
-            if not records:
-                break
-
-            all_records.extend(records)
-            offset += len(records)
-
-            if total and offset >= total:
-                break
-
-            if len(records) < page_size:
-                break
-
-        # Karnataka comes from our local SQLite database.
-        karnataka_result = get_mandi_prices(
-            state="Karnataka",
-            limit=1000,
-            offset=0,
+    for column in required_text_columns:
+        df[column] = (
+            df[column]
+            .fillna("")
+            .astype(str)
+            .str.strip()
         )
 
-        if (
-            isinstance(karnataka_result, dict)
-            and karnataka_result.get("status") == "success"
-        ):
-            all_records.extend(karnataka_result.get("records", []))
-
-        if not all_records:
-            return pd.DataFrame(), "No current mandi records returned."
-
-        df = pd.DataFrame(all_records)
-
-        required_columns = [
-            "state",
-            "district",
-            "market",
-            "commodity",
-            "variety",
-            "grade",
-            "arrival_date",
-        ]
-
-        for column in required_columns:
-            if column not in df.columns:
-                df[column] = ""
-
-        for column in ["min_price", "max_price", "modal_price"]:
-            if column not in df.columns:
-                df[column] = np.nan
-
-            df[column] = pd.to_numeric(
-                df[column],
-                errors="coerce",
-            )
-
-        for column in required_columns:
-            df[column] = (
-                df[column]
-                .fillna("")
-                .astype(str)
-                .str.strip()
-            )
-
-        df = df.drop_duplicates().reset_index(drop=True)
-
-        return df, None
-
-    except Exception as exc:
-        return pd.DataFrame(), str(exc)
+    return df.drop_duplicates().reset_index(drop=True)
 
 
 @st.cache_data(ttl=300, show_spinner=False)
 def load_state_mandi_records(state):
-    """
-    Load records for the selected state.
+    """Load only the selected state's current mandi records.
 
-    Karnataka -> SQLite-backed service.
-    Other states -> existing government API dataset.
+    This is the important deployment fix: the app no longer requests the
+    complete India dataset before the user selects a state. That prevents a
+    large unfiltered data.gov.in request from breaking the entire dashboard.
     """
-    try:
-        wanted_state = str(state).strip().casefold()
+    wanted_state = str(state).strip()
 
-        if wanted_state == "karnataka":
+    # Karnataka: prefer the local SQLite source when it exists. If the DB is
+    # not present in the deployment, fall back to the government API.
+    if wanted_state.casefold() == "karnataka":
+        try:
             result = get_mandi_prices(
                 state="Karnataka",
                 limit=1000,
                 offset=0,
             )
+            if isinstance(result, dict) and result.get("status") == "success":
+                records = result.get("records", [])
+                if records:
+                    state_df = _clean_mandi_dataframe(pd.DataFrame(records))
+                    state_df["district"] = state_df["district"].map(canonical_district)
+                    return state_df, None
+        except Exception:
+            pass
 
-            if not isinstance(result, dict):
-                return pd.DataFrame(), "Invalid Karnataka mandi response."
+    all_records = []
+    page_size = 1000
+    offset = 0
+    total = None
 
-            if result.get("status") != "success":
-                return pd.DataFrame(), result.get(
-                    "message",
-                    "Unable to load Karnataka mandi data.",
+    while True:
+        page = None
+        last_error = None
+
+        for attempt in range(3):
+            try:
+                page = _government_mandi_page(
+                    state=wanted_state,
+                    limit=page_size,
+                    offset=offset,
                 )
+                break
+            except requests.exceptions.RequestException as exc:
+                last_error = exc
+                if attempt < 2:
+                    time.sleep(1.5 * (attempt + 1))
+            except ValueError as exc:
+                last_error = exc
+                break
 
-            records = result.get("records", [])
-
-            if not records:
-                return pd.DataFrame(), (
-                    "No Karnataka mandi records are currently stored."
-                )
-
-            state_df = pd.DataFrame(records)
-
-        else:
-            # Preserve existing behavior for other states.
-            all_df, error = load_mandi_records(1000)
-
-            if error:
-                return pd.DataFrame(), error
-
-            if all_df.empty:
-                return pd.DataFrame(), "No current mandi records returned."
-
-            state_df = all_df[
-                all_df["state"].astype(str).str.strip().str.casefold()
-                == wanted_state
-            ].copy()
-
-        if state_df.empty:
+        if page is None:
             return pd.DataFrame(), (
-                f"No current mandi records returned for {state}."
+                f"Government mandi service is temporarily unavailable for "
+                f"{wanted_state}. Please try again later."
             )
 
-        if wanted_state == "karnataka" and "district" in state_df.columns:
-            state_df["district"] = state_df["district"].map(
-                canonical_district
-            )
+        if not isinstance(page, dict):
+            return pd.DataFrame(), "Invalid response received from government mandi API."
 
-        return state_df.reset_index(drop=True), None
+        records = page.get("records", [])
+        page_total = int(page.get("total", 0) or 0)
 
-    except Exception as exc:
-        return pd.DataFrame(), str(exc)
-
-
-# ============================================================
-# KARNATAKA APMC MASTER
-# ============================================================
-@st.cache_data(ttl=3600, show_spinner=False)
-def load_karnataka_master():
-    """Load the local Karnataka district/APMC master instantly.
-
-    No ReMS network call is made here. The service contains the local
-    geography master and this function has a second in-code fallback so the
-    Karnataka selector never becomes dependent on a remote website.
-    """
-    try:
-        master = load_karnataka_apmc_master()
-        if master is not None and not master.empty:
-            return master.copy()
-    except Exception:
-        pass
-
-    rows = []
-    for district, markets in KARNATAKA_MARKETS.items():
-        for market in markets:
-            rows.append({
-                "state": "Karnataka",
-                "district": district,
-                "market": market,
-                "master_source": "Karnataka local geography master",
-            })
-
-    return pd.DataFrame(
-        rows,
-        columns=["state", "district", "market", "master_source"],
-    ).drop_duplicates(["district", "market"]).reset_index(drop=True)
-
-
-@st.cache_data(ttl=300, show_spinner=False)
-def build_state_selection_df(state, current_df):
-    """Return current prices plus Karnataka's complete market master."""
-    if str(state).strip().casefold() != "karnataka":
-        return current_df.copy()
-
-    master_df = load_karnataka_master()
-    if master_df.empty:
-        return current_df.copy()
-
-    return merge_karnataka_current_prices(master_df, current_df)
-
-
-@st.cache_data(ttl=300, show_spinner=False)
-def load_karnataka_recent_price_history(
-    district,
-    market,
-    commodity,
-    days=7,
-):
-    """
-    Find the newest Karnataka price observation available in SQLite.
-
-    The actual arrival_date is retained, so older prices are never labelled
-    as today's price.
-    """
-    try:
-        result = get_mandi_prices(
-            state="Karnataka",
-            district=district,
-            market=market,
-            commodity=commodity,
-            limit=1000,
-            offset=0,
-        )
-
-        if not isinstance(result, dict):
-            return pd.DataFrame()
-
-        if result.get("status") != "success":
-            return pd.DataFrame()
-
-        records = result.get("records", [])
+        if total is None:
+            total = page_total
+        else:
+            total = max(total, page_total)
 
         if not records:
-            return pd.DataFrame()
+            break
 
-        df = pd.DataFrame(records)
+        all_records.extend(records)
+        offset += len(records)
 
-        if "arrival_date" not in df.columns:
-            return pd.DataFrame()
+        if total and offset >= total:
+            break
+        if len(records) < page_size:
+            break
 
-        df["arrival_date"] = pd.to_datetime(
-            df["arrival_date"],
-            errors="coerce",
-            dayfirst=True,
-        )
+    if not all_records:
+        return pd.DataFrame(), f"No current mandi records returned for {wanted_state}."
 
-        today = pd.Timestamp.today().normalize()
-        cutoff = today - pd.Timedelta(days=max(0, int(days) - 1))
+    state_df = _clean_mandi_dataframe(pd.DataFrame(all_records))
 
-        df = df[
-            df["arrival_date"].notna()
-            & (df["arrival_date"] >= cutoff)
-            & (df["arrival_date"] <= today)
-        ].copy()
+    if wanted_state.casefold() == "karnataka":
+        state_df["district"] = state_df["district"].map(canonical_district)
 
-        for column in ["min_price", "max_price", "modal_price"]:
-            if column in df.columns:
-                df[column] = pd.to_numeric(
-                    df[column],
-                    errors="coerce",
-                )
+    return state_df, None
 
-        return df.sort_values(
-            "arrival_date",
-            ascending=False,
-        ).reset_index(drop=True)
 
-    except Exception:
+# ============================================================
+# KARNATAKA CURRENT-DATA HELPERS
+# ============================================================
+
+@st.cache_data(ttl=300, show_spinner=False)
+def load_karnataka_recent_price_history(district, market, commodity, days=7):
+    """Find recent Karnataka prices from the current government dataset."""
+    api_key = _mandi_service._get_api_key()
+    if not api_key:
         return pd.DataFrame()
 
+    rows = []
+    today = pd.Timestamp.today().normalize()
 
-# ============================================================
-# MANDI DATA COVERAGE SUMMARY
-# ============================================================
-
-def get_mandi_coverage_summary(df, state):
-    """Return district/APMC/commodity counts for the selected state."""
-    if df is None or df.empty:
-        return {
-            "districts": 0,
-            "markets": 0,
-            "commodities": 0,
-            "records": 0,
-        }
-
-    state_df = df[
-        df["state"].astype(str).str.strip().str.casefold()
-        == str(state).strip().casefold()
-    ]
-
-    return {
-        "districts": int(state_df["district"].replace("", pd.NA).dropna().nunique()),
-        "markets": int(state_df["market"].replace("", pd.NA).dropna().nunique()),
-        "commodities": int(state_df["commodity"].replace("", pd.NA).dropna().nunique()),
-        "records": int(len(state_df)),
-    }
-
-
-# ============================================================
-# WEATHER
-# ============================================================
-
-@st.cache_data(ttl=1800, show_spinner=False)
-def geocode_location(location, state=None):
-    queries = []
-
-    if state:
-        queries.append(f"{location}, {state}, India")
-
-    queries.append(f"{location}, India")
-    if state:
-        queries.append(f"{state}, India")
-
-    for query in queries:
-        try:
-            response = requests.get(
-                GEOCODING_URL,
-                params={
-                    "name": query,
-                    "count": 10,
-                    "language": "en",
-                    "format": "json",
-                },
-                headers={"User-Agent": "Kissan-Seva/1.0"},
-                timeout=15,
-            )
-            response.raise_for_status()
-
-            results = response.json().get("results", [])
-
-            if not results:
+    for offset in range(max(1, int(days))):
+        target = today - pd.Timedelta(days=offset)
+        for date_value in [target.strftime("%d/%m/%Y"), target.strftime("%Y-%m-%d")]:
+            params = {
+                "api-key": api_key, "format": "json", "limit": 1000, "offset": 0,
+                "filters[state.keyword]": "Karnataka", "filters[district]": district,
+                "filters[market]": market, "filters[commodity]": commodity,
+                "filters[arrival_date]": date_value,
+            }
+            try:
+                response = requests.get(_mandi_service.API_URL, params=params,
+                                        headers={"User-Agent": "Kissan-Seva/1.0"},
+                                        timeout=(8, 30))
+                response.raise_for_status()
+                candidate = response.json().get("records", [])
+                if candidate:
+                    rows.extend(candidate)
+                    break
+            except Exception:
                 continue
 
-            # Prefer India and, when possible, the requested state.
-            india_results = [
-                item for item in results
-                if str(item.get("country_code", "")).upper() == "IN"
-            ]
+    if not rows:
+        return pd.DataFrame()
 
-            candidates = india_results or results
+    df = pd.DataFrame(rows)
+    for column in ["min_price", "max_price", "modal_price"]:
+        if column in df.columns:
+            df[column] = pd.to_numeric(df[column], errors="coerce")
+    if "arrival_date" in df.columns:
+        df["arrival_date"] = pd.to_datetime(df["arrival_date"], errors="coerce", dayfirst=True)
+    return df.drop_duplicates().reset_index(drop=True)
 
-            if state:
-                state_lower = state.lower()
-                state_matches = [
-                    item for item in candidates
-                    if state_lower in str(item.get("admin1", "")).lower()
-                    or state_lower in str(item.get("admin2", "")).lower()
-                ]
-                if state_matches:
-                    candidates = state_matches
-
-            result = candidates[0]
-
-            return {
-                "name": result.get("name"),
-                "country": result.get("country"),
-                "latitude": result.get("latitude"),
-                "longitude": result.get("longitude"),
-            }
-
-        except Exception:
-            continue
-
-    return None
-
-
-@st.cache_data(ttl=1800, show_spinner=False)
-def get_weather(latitude, longitude):
-    base_params = {
-        "latitude": latitude,
-        "longitude": longitude,
-        "current": ",".join([
-            "temperature_2m",
-            "relative_humidity_2m",
-            "precipitation",
-            "rain",
-            "wind_speed_10m",
-        ]),
-        "daily": ",".join([
-            "temperature_2m_max",
-            "temperature_2m_min",
-            "precipitation_probability_max",
-            "precipitation_sum",
-            "et0_fao_evapotranspiration",
-        ]),
-        "forecast_days": 7,
-        "timezone": "auto",
-    }
-
-    # First try the complete weather payload.
-    try:
-        response = requests.get(
-            WEATHER_URL,
-            params=base_params,
-            headers={"User-Agent": "Kissan-Seva/1.0"},
-            timeout=25,
-        )
-        response.raise_for_status()
-        return response.json()
-    except Exception:
-        pass
-
-    # Fallback: request weather without ET0. This keeps the weather
-    # dashboard alive even if one optional forecast variable fails.
-    fallback_params = dict(base_params)
-    fallback_params["daily"] = ",".join([
-        "temperature_2m_max",
-        "temperature_2m_min",
-        "precipitation_probability_max",
-        "precipitation_sum",
-    ])
-
-    try:
-        response = requests.get(
-            WEATHER_URL,
-            params=fallback_params,
-            headers={"User-Agent": "Kissan-Seva/1.0"},
-            timeout=25,
-        )
-        response.raise_for_status()
-        return response.json()
-    except Exception:
-        return None
-
-
-# ============================================================
-# NAVBAR
-# ============================================================
 
 html(
     """
@@ -1742,15 +1121,6 @@ html(
         <div class="hero-quote">
             “Better Information<br>
             A Stronger Tomorrow” 🌿
-            <div style="margin-top:14px;font-size:16px;font-style:normal;line-height:1.35;">
-                Built by <b>Pradeep Kalasagond</b>
-                <span style="margin:0 5px;">·</span>
-                <a href="https://www.linkedin.com/in/pradeep-kalasagond-95579a230"
-                   target="_blank"
-                   style="color:white !important;text-decoration:none;font-weight:750;">
-                    LinkedIn ↗
-                </a>
-            </div>
         </div>
     </div>
     """
@@ -1805,38 +1175,10 @@ html(
 
 
 # ============================================================
-# LOAD DATA
+# LOAD ONLY THE SELECTED STATE
 # ============================================================
 
-with st.spinner("Loading complete current mandi data..."):
-    mandi_df, mandi_error = load_mandi_records(1000)
-
-if mandi_error:
-    st.error("Unable to load government mandi data right now.")
-    st.caption(mandi_error)
-    st.stop()
-
-if mandi_df.empty:
-    st.warning("No mandi data is currently available.")
-    st.stop()
-
-
-# ============================================================
-# DEPENDENT FILTERS
-# State -> District -> Commodity -> Market
-# ============================================================
-
-states = sorted(
-    [
-        value
-        for value in mandi_df["state"].unique()
-        if value and str(value).lower() != "nan"
-    ]
-)
-
-if "Karnataka" not in states:
-    states.append("Karnataka")
-    states = sorted(states)
+states = sorted(SUPPORTED_STATES)
 
 state_col, district_col, commodity_col, market_col = st.columns(4)
 
@@ -1852,50 +1194,33 @@ with state_col:
 with st.spinner(f"Loading {selected_state} mandi data..."):
     state_current_df, state_error = load_state_mandi_records(selected_state)
 
+# Keep these names for the existing system-health section later in the file.
+mandi_df = state_current_df.copy()
+mandi_error = state_error
+
+if state_error:
+    st.warning(f"🌾 Mandi data is temporarily unavailable for {selected_state}.")
+    st.caption(
+        "The rest of Kissan Seva remains available. "
+        "Please try again shortly."
+    )
+    st.stop()
+
+if state_current_df.empty:
+    st.info(f"No current mandi records are available for {selected_state}.")
+    st.stop()
+
 is_karnataka = str(selected_state).strip().casefold() == "karnataka"
-
-# ============================================================
-# CURRENT PRICE SELECTION
-# ============================================================
-
-# IMPORTANT:
-# Districts, commodities and markets are derived ONLY from the
-# current government price records.
-#
-# No local/master geography is used to manufacture dropdown options.
-# Therefore:
-#
-#     Government data
-#          ↓
-#       State
-#          ↓
-#      District
-#          ↓
-#     Commodity
-#          ↓
-#       Market
-#          ↓
-#        Price
-#
-# If the government adds a new district/commodity/market record,
-# it will automatically appear after the cached data refreshes.
-
 state_df = state_current_df.copy()
 
+# Only districts with actual current government price records are selectable.
+# New reporting districts appear automatically after the government feed refreshes.
 districts = sorted([
-    str(x).strip()
-    for x in state_df.get(
-        "district",
-        pd.Series(dtype=str)
-    ).dropna().astype(str).unique()
-    if str(x).strip()
-    and str(x).casefold() != "nan"
+    x for x in state_df.get("district", pd.Series(dtype=str)).dropna().astype(str).unique()
+    if x.strip() and x.casefold() != "nan"
 ])
 
-coverage = get_mandi_coverage_summary(
-    state_df,
-    selected_state
-)
+coverage = get_mandi_coverage_summary(state_df, selected_state)
 
 html(
     f"""
@@ -1904,7 +1229,7 @@ html(
             <div class="kpi-icon">📍</div>
             <div>
                 <div class="kpi-value">{coverage["districts"]}</div>
-                <div class="kpi-label">Districts reporting</div>
+                <div class="kpi-label">Districts in master</div>
             </div>
         </div>
         <div class="kpi-card">
@@ -1948,25 +1273,24 @@ district_df = state_df[
     == selected_district.casefold()
 ].copy()
 
-# IMPORTANT FOR KARNATAKA:
-# Do not use the geography master to create commodities.
-# The master is only for keeping all districts visible.
-# Commodity options must come ONLY from actual government records for the
-# selected district. This prevents a commodity from another Karnataka
-# district (for example Snakeguard) appearing in Vijayapura.
-commodities = sorted({
+# ============================================================
+# COMMODITY / MARKET SELECTION
+# ============================================================
+# Only records belonging to the selected district are used.
+# No cross-district fallback and no fabricated prices.
+
+district_commodities = sorted({
     x for x in district_df.get("commodity", pd.Series(dtype=str)).dropna().astype(str).unique()
     if x.strip() and x.casefold() != "nan"
 })
 
-if not commodities:
-    st.warning(f"No commodity list is available for {selected_district}.")
+if not district_commodities:
+    st.warning(f"No current government commodity prices are available for {selected_district}.")
     st.stop()
 
 with commodity_col:
     selected_commodity = st.selectbox(
-        "Commodity",
-        commodities,
+        "Commodity", district_commodities,
         key=f"kissan_commodity_{selected_state}_{selected_district}",
     )
 
@@ -1975,33 +1299,22 @@ commodity_df = district_df[
     == selected_commodity.casefold()
 ].copy()
 
-# Match markets by normalized names so "Vijayapura", "Vijayapura APMC",
-# etc. resolve to the same market when the government feed uses a variant.
 if not commodity_df.empty and "market" in commodity_df.columns:
     commodity_df["market_key"] = commodity_df["market"].map(normalize_market)
 
-markets = set(
+markets = sorted({
     x for x in commodity_df.get("market", pd.Series(dtype=str)).dropna().astype(str).unique()
     if x.strip() and x.casefold() != "nan"
-)
-
-# IMPORTANT FOR KARNATAKA:
-# Markets must also come ONLY from the actual government records for the
-# selected district + commodity. Do not add master markets here, otherwise
-# the UI can show an APMC for which the selected commodity has no price.
-markets = sorted(markets)
+})
 
 if not markets:
-    st.warning("No APMC / market is available for this district yet.")
+    st.warning("No current government market records are available for this commodity.")
     st.stop()
 
 with market_col:
     selected_market = st.selectbox(
-        "Market",
-        markets,
-        key=(
-            f"kissan_market_{selected_state}_{selected_district}_{selected_commodity}"
-        ),
+        "Market", markets,
+        key=f"kissan_market_{selected_state}_{selected_district}_{selected_commodity}",
     )
 
 
@@ -2019,32 +1332,9 @@ else:
         commodity_df["market"] == selected_market
     ].copy()
 
-if selected_df.empty and is_karnataka:
-    selected_df = pd.DataFrame([{
-        "state": "Karnataka",
-        "district": selected_district,
-        "market": selected_market,
-        "commodity": selected_commodity,
-        "variety": "",
-        "grade": "",
-        "min_price": np.nan,
-        "max_price": np.nan,
-        "modal_price": np.nan,
-        "arrival_date": pd.NaT,
-    }])
-
 if selected_df.empty:
-    st.warning("No records are available for this selection.")
+    st.warning("No current government records are available for this selection.")
     st.stop()
-
-# If today's/current feed has no price for Karnataka, search up to seven days
-# back and use the newest real observation. Never label an older price as today.
-if is_karnataka and not selected_df["modal_price"].notna().any():
-    fallback_df = load_karnataka_recent_price_history(
-        selected_district, selected_market, selected_commodity, days=7
-    )
-    if not fallback_df.empty:
-        selected_df = fallback_df.copy()
 
 selected_df = selected_df.drop(columns=["market_key"], errors="ignore")
 
