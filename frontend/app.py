@@ -2901,5 +2901,5 @@ html(
             Smarter Farming. Brighter Tomorrow.
         </div>
     </div>
-    """"
+    """
 )
